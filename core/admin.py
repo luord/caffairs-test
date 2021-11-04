@@ -1,3 +1,8 @@
 from django.contrib import admin
 
-# Register your models here.
+from core.models import Application, ValidationSchema, Event
+
+
+admin.site.register(Application)
+admin.site.register(ValidationSchema)
+admin.site.register(Event)

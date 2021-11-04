@@ -1,3 +1,4 @@
+from asgiref.sync import sync_to_async
 from django.db import models
 from django.utils import timezone
 
@@ -13,22 +14,22 @@ class ValidationSchema(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["category", "name"])
+            models.UniqueConstraint(fields=["category", "name"], name="validation.category_name")
         ]
+
+
+class ValidationStates(models.TextChoices):
+    NON_VALIDATED = "NV", "Processing Pending"
+    INVALID = "IN", "Invalid"
+    VALID = "VA", "Valid"
 
 
 class Event(models.Model):
     session_id = models.UUIDField(editable=False)
-    cateogry = models.CharField(max_length=100)
+    category = models.CharField(max_length=100)
     name = models.CharField(max_length=50)
     data = models.JSONField()
-    timestamp = models.DateTimeField()
-
-    class ValidationStates(models.TextChoices):
-        NON_VALIDATED = "NV", "Processing Pending"
-        INVALID = "IN", "Invalid"
-        VALID = "VA", "Valid"
-
+    timestamp = models.DateTimeField(default=timezone.now)
     validation_state = models.CharField(
         max_length=2,
         choices=ValidationStates.choices,
@@ -37,9 +38,13 @@ class Event(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["category", "name", "session_id", "timestamp"])
+            models.UniqueConstraint(
+                fields=["category", "name", "session_id", "timestamp"],
+                name="event.category_name"
+            )
         ]
 
+    @sync_to_async
     def process(self):
         if self.validation_state != ValidationStates.NON_VALIDATED:
             return
